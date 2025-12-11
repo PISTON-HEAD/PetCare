@@ -1,3 +1,4 @@
+
 name: Generate Onboarding YAML
 
 on:
@@ -27,12 +28,18 @@ jobs:
             const body = context.payload.issue.body || "";
             const lines = body.split("\n").map(l => l.trim());
 
-            // Extract fields like: **Hospital Name:** Value
             function getField(title) {
-              const prefix = `**${title}:**`;
-              const match = lines.find(l => l.startsWith(prefix));
-              if (!match) return "";
-              return match.replace(prefix, "").trim();
+              const index = lines.findIndex(
+                l => l.toLowerCase() === `### ${title}`.toLowerCase()
+              );
+              if (index === -1) return "";
+
+              for (let i = index + 1; i < lines.length; i++) {
+                if (lines[i].length > 0) {
+                  return lines[i].replace(/`/g, "");
+                }
+              }
+              return "";
             }
 
             const data = {
@@ -45,7 +52,7 @@ jobs:
               environment: getField("Environment"),
               ports: getField("Inbound Ports (Optional)"),
               notes: getField("Additional Notes"),
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().toISOString()
             };
 
             core.setOutput("json", JSON.stringify(data));
@@ -71,17 +78,17 @@ jobs:
           echo "Generating: $FILE"
 
           cat <<EOF > "$FILE"
-hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
-sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
-namespace: "$(jq -r '.namespace' onboarding/data.json)"
-cpu: "$(jq -r '.cpu' onboarding/data.json)"
-memory: "$(jq -r '.memory' onboarding/data.json)"
-storage: "$(jq -r '.storage' onboarding/data.json)"
-environment: "$(jq -r '.environment' onboarding/data.json)"
-ports: "$(jq -r '.ports' onboarding/data.json)"
-notes: "$(jq -r '.notes' onboarding/data.json)"
-generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
-EOF
+          hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
+          sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
+          namespace: "$(jq -r '.namespace' onboarding/data.json)"
+          cpu: "$(jq -r '.cpu' onboarding/data.json)"
+          memory: "$(jq -r '.memory' onboarding/data.json)"
+          storage: "$(jq -r '.storage' onboarding/data.json)"
+          environment: "$(jq -r '.environment' onboarding/data.json)"
+          ports: "$(jq -r '.ports' onboarding/data.json)"
+          notes: "$(jq -r '.notes' onboarding/data.json)"
+          generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
+          EOF
 
       # ----------------------------------------------------
       # 3. Commit generated YAML
@@ -93,37 +100,21 @@ EOF
           file_pattern: onboarding/*.yaml
 
       # ----------------------------------------------------
-      # 4. Post Confirmation Comment
+      # 4. Comment confirmation
       # ----------------------------------------------------
       - name: Post Confirmation Comment
         uses: actions/github-script@v7
         with:
           script: |
-            const data = JSON.parse(`${{ steps.extract.outputs.json }}`);
-
-            const body =
-              "### 📄 Onboarding Request Summary\n" +
-              `**Hospital Name:** ${data.hospital_name}\n` +
-              `**Sales Order:** ${data.sales_order}\n` +
-              `**Namespace:** ${data.namespace}\n` +
-              `**CPU Cores:** ${data.cpu}\n` +
-              `**Memory:** ${data.memory}\n` +
-              `**Storage:** ${data.storage}\n` +
-              `**Environment:** ${data.environment}\n` +
-              `**Ports:** ${data.ports || "N/A"}\n` +
-              `**Notes:** ${data.notes || "N/A"}\n\n` +
-              "✅ **Onboarding YAML successfully generated and stored in** `/onboarding/`.\n" +
-              "You may now proceed with **/approve**.";
-
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body
+              body: "✅ Onboarding YAML successfully generated and stored in `/onboarding/`.\n\nYou may now proceed with the approval workflow."
             });
 
       # ----------------------------------------------------
-      # 5. Add "yaml-generated" label
+      # 5. Mark YAML generation complete (IMPORTANT)
       # ----------------------------------------------------
       - name: Mark YAML generation as complete
         uses: actions/github-script@v7
