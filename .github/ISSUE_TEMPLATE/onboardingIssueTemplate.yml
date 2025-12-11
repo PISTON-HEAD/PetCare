@@ -1,0 +1,107 @@
+name: IBE Integration Onboarding Request
+description: Submit required details for onboarding a new hospital container
+title: "[Onboarding] "
+labels: ["pending-input"]
+
+body:
+
+  - type: input
+    id: hospital_name
+    attributes:
+      label: Hospital Name
+      description: Enter hospital name (use lowercase + hyphens)
+      placeholder: "aster-hebbal"
+    validations:
+      required: true
+
+  - type: input
+    id: sales_order
+    attributes:
+      label: Sales Order Number (SO)
+      placeholder: "SO-0001"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cpu
+    attributes:
+      label: CPU Cores
+      description: Select number of CPU cores required
+      multiple: false
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: memory
+    attributes:
+      label: Memory (Gi)
+      description: Choose required memory
+      options:
+        - "2Gi"
+        - "4Gi"
+        - "8Gi"
+        - "16Gi"
+        - "32Gi"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: storage
+    attributes:
+      label: Storage (Gi)
+      description: Select required storage size
+      options:
+        - "10Gi"
+        - "20Gi"
+        - "30Gi"
+        - "40Gi"
+        - "50Gi"
+        - "60Gi"
+        - "70Gi"
+        - "80Gi"
+        - "90Gi"
+        - "100Gi"
+    validations:
+      required: true
+
+  - type: input
+    id: namespace
+    attributes:
+      label: Kubernetes Namespace
+      placeholder: "aster-hebbal-ns"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - dev
+        - qa
+        - stage
+        - prod
+    validations:
+      required: true
+
+  - type: input
+    id: ports
+    attributes:
+      label: Inbound Ports (Optional)
+      placeholder: "8080"
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Add any special requirements
+      placeholder: "Optional notes here..."
+    validations:
+      required: false
