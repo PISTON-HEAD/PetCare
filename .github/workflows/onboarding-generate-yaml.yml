@@ -1,0 +1,110 @@
+name: Generate Onboarding YAML
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  extract_and_generate_yaml:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # ------------------------------
+      # 1. Extract issue form values
+      # ------------------------------
+      - name: Extract Issue Form Values
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body;
+
+            function get(field) {
+              const match = body.match(new RegExp(`${field}\\s*\\|\\s*([^|\\n]+)`));
+              return match ? match[1].trim().replace(/`/g, "") : "";
+            }
+
+            const data = {
+              hospital_name: get("Hospital Name"),
+              sales_order: get("Sales Order Number"),
+              cpu: get("CPU \\(cores\\)"),
+              memory: get("Memory \\(Gi\\)"),
+              storage: get("Storage \\(Gi\\)"),
+              namespace: get("Namespace"),
+              frequency: get("Deployment Frequency"),
+              timestamp: new Date().toISOString()
+            };
+
+            core.setOutput("yaml", JSON.stringify(data));
+
+      # ------------------------------
+      # 2. Generate YAML file
+      # ------------------------------
+      - name: Create YAML file
+        run: |
+          mkdir -p onboarding
+          DATA='${{ steps.extract.outputs.yaml }}'
+
+          HOSPITAL=$(echo "$DATA" | jq -r '.hospital_name')
+          FILE="onboarding/${HOSPITAL}.yaml"
+
+          echo "Creating file: $FILE"
+
+          cat <<EOF > $FILE
+          hospital_name: "$(echo "$DATA" | jq -r '.hospital_name')"
+          sales_order: "$(echo "$DATA" | jq -r '.sales_order')"
+          namespace: "$(echo "$DATA" | jq -r '.namespace')"
+          cpu: "$(echo "$DATA" | jq -r '.cpu')"
+          memory: "$(echo "$DATA" | jq -r '.memory')"
+          storage: "$(echo "$DATA" | jq -r '.storage')"
+          frequency: "$(echo "$DATA" | jq -r '.frequency')"
+          generated_at: "$(echo "$DATA" | jq -r '.timestamp')"
+          EOF
+
+
+      # ------------------------------
+      # 3. Commit YAML file to Repo
+      # ------------------------------
+      - name: Commit & Push YAML
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Generated onboarding YAML for issue #${{ github.event.issue.number }}"
+          file_pattern: onboarding/*.yaml
+
+      # ------------------------------
+      # 4. Reset labels (clear all)
+      # ------------------------------
+      - name: Clear all labels on issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.issue.labels.map(l => l.name);
+
+            if (labels.length > 0) {
+              await github.rest.issues.removeAllLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number
+              });
+            }
+
+      # ------------------------------
+      # 5. Add confirmation comment
+      # ------------------------------
+      - name: Comment confirmation
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "📝 YAML file has been generated and stored in `/onboarding/` folder.\n\nNext step: *Approval workflow integration coming next.*"
+            })
