@@ -9,114 +9,97 @@ permissions:
   issues: write
 
 jobs:
-  extract_and_generate_yaml:
+  generate:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # ------------------------------
-      # 1. Extract issue form values
-      # ------------------------------
+      # ----------------------------------------------------
+      # 1. Extract issue form values from Markdown body
+      # ----------------------------------------------------
       - name: Extract Issue Form Values
         id: extract
         uses: actions/github-script@v7
         with:
           script: |
             const body = context.payload.issue.body || "";
+            const lines = body.split("\n").map(l => l.trim());
 
-            // escape regex-special chars for the field name
-            function escapeRegex(s) {
-              return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            }
-
-            function get(field) {
-              // match either "Field: value" or "Field | value" or "Field |value"
-              const re = new RegExp(escapeRegex(field) + '\\s*(?:[:|])\\s*([^\\n\\r]+)', 'i');
-              const match = body.match(re);
-              return match ? match[1].trim().replace(/`/g, "") : "";
+            function getField(title) {
+              const index = lines.findIndex(l => l.toLowerCase() === `### ${title}`.toLowerCase());
+              if (index === -1) return "";
+              // take the next non-empty line
+              for (let i = index + 1; i < lines.length; i++) {
+                if (lines[i].length > 0) return lines[i].replace(/`/g, "");
+              }
+              return "";
             }
 
             const data = {
-              hospital_name: get("Hospital Name"),
-              sales_order: get("Sales Order Number"),
-              cpu: get("CPU (cores)"),
-              memory: get("Memory (Gi)"),
-              storage: get("Storage (Gi)"),
-              namespace: get("Namespace"),
-              frequency: get("Deployment Frequency"),
+              hospital_name: getField("Hospital Name"),
+              sales_order: getField("Sales Order Number (SO)"),
+              cpu: getField("CPU Cores"),
+              memory: getField("Memory (Gi)"),
+              storage: getField("Storage (Gi)"),
+              namespace: getField("Kubernetes Namespace"),
+              environment: getField("Environment"),
+              ports: getField("Inbound Ports (Optional)"),
+              notes: getField("Additional Notes"),
               timestamp: new Date().toISOString()
             };
 
-            // Return JSON string so it's available as steps.extract.outputs.result
-            return JSON.stringify(data);
+            core.setOutput("json", JSON.stringify(data));
 
-      # ------------------------------
-      # 2. Generate YAML file
-      # ------------------------------
+      # ----------------------------------------------------
+      # 2. Generate YAML file safely
+      # ----------------------------------------------------
       - name: Create YAML file
         run: |
-          # ensure jq is available
-          apt-get update && apt-get install -y jq
-
           mkdir -p onboarding
+          
+          echo '${{ steps.extract.outputs.json }}' > onboarding/data.json
 
-          # write the JSON returned by github-script to a file (safer quoting)
-          echo '${{ steps.extract.outputs.result }}' > onboarding/data.json
-
-          RAW_HOSPITAL=$(jq -r '.hospital_name' onboarding/data.json)
-
-          if [ -z "$RAW_HOSPITAL" ] || [ "$RAW_HOSPITAL" == "null" ]; then
-            echo "ERROR: Hospital name is empty. Cannot create file."
+          RAW=$(jq -r '.hospital_name' onboarding/data.json)
+          
+          if [ -z "$RAW" ] || [ "$RAW" = "null" ]; then
+            echo "ERROR: Hospital name is missing."
             exit 1
           fi
 
-          # Sanitize filename: lowercase, replace spaces with hyphens, remove symbols except - and _
-          SAFE_HOSPITAL=$(echo "$RAW_HOSPITAL" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9_-]//g')
+          SAFE=$(echo "$RAW" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9_-]//g')
 
-          FILE="onboarding/${SAFE_HOSPITAL}.yaml"
+          FILE="onboarding/${SAFE}.yaml"
 
-          echo "Creating file: $FILE"
+          echo "Generating: $FILE"
 
-          # Use jq to safely extract fields into the YAML file
-          cat > "$FILE" <<EOF
+          cat <<EOF > "$FILE"
           hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
           sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
           namespace: "$(jq -r '.namespace' onboarding/data.json)"
           cpu: "$(jq -r '.cpu' onboarding/data.json)"
           memory: "$(jq -r '.memory' onboarding/data.json)"
           storage: "$(jq -r '.storage' onboarding/data.json)"
-          frequency: "$(jq -r '.frequency' onboarding/data.json)"
+          environment: "$(jq -r '.environment' onboarding/data.json)"
+          ports: "$(jq -r '.ports' onboarding/data.json)"
+          notes: "$(jq -r '.notes' onboarding/data.json)"
           generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
           EOF
 
-      # ------------------------------
-      # 3. Commit YAML file
-      # ------------------------------
-      - name: Commit & Push YAML
+      # ----------------------------------------------------
+      # 3. Commit generated YAML
+      # ----------------------------------------------------
+      - name: Commit YAML
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Generated onboarding YAML for issue #${{ github.event.issue.number }}"
           file_pattern: onboarding/*.yaml
 
-      # ------------------------------
-      # 4. Reset labels
-      # ------------------------------
-      - name: Clear all labels on issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.removeAllLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-
-      # ------------------------------
-      # 5. Final confirmation comment
-      # ------------------------------
-      - name: Comment confirmation
+      # ----------------------------------------------------
+      # 4. Comment confirmation
+      # ----------------------------------------------------
+      - name: Post Confirmation Comment
         uses: actions/github-script@v7
         with:
           script: |
@@ -124,5 +107,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: "📝 YAML file successfully generated in the `/onboarding/` folder.\n\nNext step: Approval workflow coming soon."
-            })
+              body: "✅ Onboarding YAML successfully generated and stored in `/onboarding/`.\n\nYou may now proceed with the approval workflow."
+            });
