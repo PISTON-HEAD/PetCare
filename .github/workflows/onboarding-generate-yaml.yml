@@ -107,8 +107,8 @@ jobs:
           script: |
             const data = JSON.parse(`${{ steps.extract.outputs.json }}`);
 
-            const summary = `
-### 📄 Onboarding Request Summary
+            const summary =`### 📄 Onboarding Request Summary
+
 Hospital Name: ${data.hospital_name}
 Sales Order: ${data.sales_order}
 Namespace: ${data.namespace}
@@ -118,10 +118,11 @@ Storage: ${data.storage}
 Environment: ${data.environment}
 Ports: ${data.ports || "N/A"}
 Notes: ${data.notes || "N/A"}
----
-✅ **Onboarding YAML successfully generated and stored in** \`/onboarding/\`.
 
-You may now proceed with the **approval workflow** using **/approve**.
+---
+
+✅ Onboarding YAML successfully generated and stored in /onboarding/.
+You may now proceed with the approval workflow using /approve.
 `;
 
             await github.rest.issues.createComment({
