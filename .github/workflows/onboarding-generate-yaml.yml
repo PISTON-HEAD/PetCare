@@ -28,11 +28,16 @@ jobs:
             const lines = body.split("\n").map(l => l.trim());
 
             function getField(title) {
-              const index = lines.findIndex(l => l.toLowerCase() === `### ${title}`.toLowerCase());
+              const index = lines.findIndex(
+                l => l.toLowerCase() === `### ${title}`.toLowerCase()
+              );
               if (index === -1) return "";
+
               // take the next non-empty line
               for (let i = index + 1; i < lines.length; i++) {
-                if (lines[i].length > 0) return lines[i].replace(/`/g, "");
+                if (lines[i].length > 0) {
+                  return lines[i].replace(/`/g, "");
+                }
               }
               return "";
             }
@@ -58,11 +63,10 @@ jobs:
       - name: Create YAML file
         run: |
           mkdir -p onboarding
-          
           echo '${{ steps.extract.outputs.json }}' > onboarding/data.json
 
           RAW=$(jq -r '.hospital_name' onboarding/data.json)
-          
+
           if [ -z "$RAW" ] || [ "$RAW" = "null" ]; then
             echo "ERROR: Hospital name is missing."
             exit 1
@@ -75,17 +79,17 @@ jobs:
           echo "Generating: $FILE"
 
           cat <<EOF > "$FILE"
-          hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
-          sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
-          namespace: "$(jq -r '.namespace' onboarding/data.json)"
-          cpu: "$(jq -r '.cpu' onboarding/data.json)"
-          memory: "$(jq -r '.memory' onboarding/data.json)"
-          storage: "$(jq -r '.storage' onboarding/data.json)"
-          environment: "$(jq -r '.environment' onboarding/data.json)"
-          ports: "$(jq -r '.ports' onboarding/data.json)"
-          notes: "$(jq -r '.notes' onboarding/data.json)"
-          generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
-          EOF
+hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
+sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
+namespace: "$(jq -r '.namespace' onboarding/data.json)"
+cpu: "$(jq -r '.cpu' onboarding/data.json)"
+memory: "$(jq -r '.memory' onboarding/data.json)"
+storage: "$(jq -r '.storage' onboarding/data.json)"
+environment: "$(jq -r '.environment' onboarding/data.json)"
+ports: "$(jq -r '.ports' onboarding/data.json)"
+notes: "$(jq -r '.notes' onboarding/data.json)"
+generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
+EOF
 
       # ----------------------------------------------------
       # 3. Commit generated YAML
@@ -103,36 +107,12 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const data = JSON.parse(`${{ steps.extract.outputs.json }}`);
-
-            const summary = `### 📄 Onboarding Request Summary
-
-            | Field | Value |
-            |------|--------|
-            | **Hospital Name** | ${data.hospital_name} |
-            | **Sales Order** | ${data.sales_order} |
-            | **Namespace** | ${data.namespace} |
-            | **CPU Cores** | ${data.cpu} |
-            | **Memory** | ${data.memory} |
-            | **Storage** | ${data.storage} |
-            | **Environment** | ${data.environment} |
-            | **Ports** | ${data.ports || "N/A"} |
-            | **Notes** | ${data.notes || "N/A"} |
-
----
-
-✅ **Onboarding YAML successfully generated and stored in** \`/onboarding/\`.
-
-You may now proceed with the **approval workflow** using **/approve**.
-            `;
-
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: summary
+              body: "✅ Onboarding YAML successfully generated and stored in `/onboarding/`.\n\nYou may now proceed with the approval workflow."
             });
-
 
       - name: Mark YAML generation as complete
         uses: actions/github-script@v7
@@ -144,4 +124,3 @@ You may now proceed with the **approval workflow** using **/approve**.
               issue_number: context.issue.number,
               labels: ["yaml-generated"]
             });
-
