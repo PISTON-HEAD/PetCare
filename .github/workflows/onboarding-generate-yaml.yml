@@ -27,18 +27,12 @@ jobs:
             const body = context.payload.issue.body || "";
             const lines = body.split("\n").map(l => l.trim());
 
+            // Extract fields like: **Hospital Name:** Value
             function getField(title) {
-              const index = lines.findIndex(
-                l => l.toLowerCase() === `### ${title}`.toLowerCase()
-              );
-              if (index === -1) return "";
-
-              for (let i = index + 1; i < lines.length; i++) {
-                if (lines[i].length > 0) {
-                  return lines[i].replace(/`/g, "");
-                }
-              }
-              return "";
+              const prefix = `**${title}:**`;
+              const match = lines.find(l => l.startsWith(prefix));
+              if (!match) return "";
+              return match.replace(prefix, "").trim();
             }
 
             const data = {
@@ -51,7 +45,7 @@ jobs:
               environment: getField("Environment"),
               ports: getField("Inbound Ports (Optional)"),
               notes: getField("Additional Notes"),
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             };
 
             core.setOutput("json", JSON.stringify(data));
@@ -106,7 +100,7 @@ EOF
         with:
           script: |
             const data = JSON.parse(`${{ steps.extract.outputs.json }}`);
-      
+
             const body =
               "### 📄 Onboarding Request Summary\n" +
               `**Hospital Name:** ${data.hospital_name}\n` +
@@ -120,16 +114,16 @@ EOF
               `**Notes:** ${data.notes || "N/A"}\n\n` +
               "✅ **Onboarding YAML successfully generated and stored in** `/onboarding/`.\n" +
               "You may now proceed with **/approve**.";
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: body
+              body
             });
 
       # ----------------------------------------------------
-      # 5. Add label "yaml-generated"
+      # 5. Add "yaml-generated" label
       # ----------------------------------------------------
       - name: Mark YAML generation as complete
         uses: actions/github-script@v7
