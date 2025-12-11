@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     # -------------------------------------------------------
-    # This MUST ONLY RUN after YAML generation workflow worked
+    # Only run when:
+    # - comment contains /approve
+    # - issue has yaml-generated label
     # -------------------------------------------------------
     if: |
       github.event.issue.pull_request == null &&
@@ -26,50 +28,54 @@ jobs:
         uses: actions/checkout@v3
 
       # ----------------------------------------
-      # 1. Load approver list
+      # 1. Load approver list WITHOUT yq or jq
       # ----------------------------------------
-      - name: Read Approvers
+      - name: Load Approvers
         id: approvers
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y yq jq
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
 
-          APPROVERS_JSON=$(yq '.approvers' -o=json approvers/approvers.yaml)
+            const file = "approvers/approvers.yaml";
+            const raw = fs.readFileSync(file, "utf8");
 
-          # Base64 encode to avoid formatting issues
-          APPROVERS_B64=$(echo "$APPROVERS_JSON" | base64)
+            // Extract YAML list manually (simple format)
+            const approvers = [];
 
-          echo "APPROVERS_B64=$APPROVERS_B64" >> $GITHUB_ENV
+            raw.split("\n").forEach(line => {
+              const match = line.match(/-\s*(.+)/);
+              if (match) approvers.push(match[1].trim());
+            });
 
+            console.log("Approvers loaded:", approvers);
+
+            core.setOutput("list", JSON.stringify(approvers));
 
       # ----------------------------------------
-      # 2. Validate if comment author is allowed
+      # 2. Validate if commenter is in approver list
       # ----------------------------------------
       - name: Validate Approver
         id: validate
-        run: |
-          COMMENTER="${{ github.event.comment.user.login }}"
-          echo "Commenter: $COMMENTER"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const approvers = JSON.parse("${{ steps.approvers.outputs.list }}");
+            const commenter = context.payload.comment.user.login;
 
-          # Decode list
-          APPROVERS=$(echo "$APPROVERS_B64" | base64 --decode)
+            console.log("Commenter:", commenter);
 
-          echo "Approvers list: $APPROVERS"
+            const authorized = approvers.includes(commenter);
 
-          # Check if commenter is in approvers list
-          echo "$APPROVERS" | jq -e --arg user "$COMMENTER" '.[] | select(. == $user)' > /dev/null
+            console.log("Authorized:", authorized);
 
-          if [ $? -ne 0 ]; then
-            echo "UNAUTHORIZED=true" >> $GITHUB_ENV
-          else
-            echo "UNAUTHORIZED=false" >> $GITHUB_ENV
-          fi
+            core.setOutput("authorized", authorized);
 
       # ----------------------------------------
-      # 3. Handle unauthorized approvals
+      # 3. Reject unauthorized users
       # ----------------------------------------
       - name: Reject unauthorized user
-        if: env.UNAUTHORIZED == 'true'
+        if: steps.validate.outputs.authorized == 'false'
         uses: actions/github-script@v7
         with:
           script: |
@@ -77,15 +83,16 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `⛔ You are NOT authorized to approve this onboarding.\n\nOnly designated approvers can use '/approve'.`
+              body: "⛔ **You are NOT authorized to approve this onboarding.**"
             });
-            core.setFailed("Unauthorized approver")
+
+            core.setFailed("User is not in approver list.");
 
       # ----------------------------------------
-      # 4. Approve the onboarding request
+      # 4. Add approval label
       # ----------------------------------------
       - name: Add approval label
-        if: env.UNAUTHORIZED == 'false'
+        if: steps.validate.outputs.authorized == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -97,10 +104,10 @@ jobs:
             });
 
       # ----------------------------------------
-      # 5. Post approval confirmation
+      # 5. Post confirmation message
       # ----------------------------------------
       - name: Comment approval result
-        if: env.UNAUTHORIZED == 'false'
+        if: steps.validate.outputs.authorized == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -111,5 +118,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `✅ **Approval Granted**\nApproved by **${user}** at **${timestamp}**.\n\nOnboarding pipeline will now proceed.`
+              body: `✅ **Approval Granted**\nApproved by **${user}** at **${timestamp}**.\n\nOnboarding will now proceed.`
             });
