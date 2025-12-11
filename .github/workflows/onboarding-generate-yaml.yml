@@ -77,17 +77,17 @@ jobs:
           echo "Generating: $FILE"
 
           cat <<EOF > "$FILE"
-hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
-sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
-namespace: "$(jq -r '.namespace' onboarding/data.json)"
-cpu: "$(jq -r '.cpu' onboarding/data.json)"
-memory: "$(jq -r '.memory' onboarding/data.json)"
-storage: "$(jq -r '.storage' onboarding/data.json)"
-environment: "$(jq -r '.environment' onboarding/data.json)"
-ports: "$(jq -r '.ports' onboarding/data.json)"
-notes: "$(jq -r '.notes' onboarding/data.json)"
-generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
-EOF
+          hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
+          sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
+          namespace: "$(jq -r '.namespace' onboarding/data.json)"
+          cpu: "$(jq -r '.cpu' onboarding/data.json)"
+          memory: "$(jq -r '.memory' onboarding/data.json)"
+          storage: "$(jq -r '.storage' onboarding/data.json)"
+          environment: "$(jq -r '.environment' onboarding/data.json)"
+          ports: "$(jq -r '.ports' onboarding/data.json)"
+          notes: "$(jq -r '.notes' onboarding/data.json)"
+          generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
+          EOF
 
       # ----------------------------------------------------
       # 3. Commit generated YAML
