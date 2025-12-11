@@ -31,7 +31,16 @@ jobs:
       - name: Read Approvers
         id: approvers
         run: |
-          echo "APPROVERS=$(yq '.approvers' -o=json approvers/approvers.yaml)" >> $GITHUB_ENV
+          sudo apt-get update -y
+          sudo apt-get install -y yq jq
+
+          APPROVERS_JSON=$(yq '.approvers' -o=json approvers/approvers.yaml)
+
+          # Base64 encode to avoid formatting issues
+          APPROVERS_B64=$(echo "$APPROVERS_JSON" | base64)
+
+          echo "APPROVERS_B64=$APPROVERS_B64" >> $GITHUB_ENV
+
 
       # ----------------------------------------
       # 2. Validate if comment author is allowed
@@ -42,6 +51,12 @@ jobs:
           COMMENTER="${{ github.event.comment.user.login }}"
           echo "Commenter: $COMMENTER"
 
+          # Decode list
+          APPROVERS=$(echo "$APPROVERS_B64" | base64 --decode)
+
+          echo "Approvers list: $APPROVERS"
+
+          # Check if commenter is in approvers list
           echo "$APPROVERS" | jq -e --arg user "$COMMENTER" '.[] | select(. == $user)' > /dev/null
 
           if [ $? -ne 0 ]; then
