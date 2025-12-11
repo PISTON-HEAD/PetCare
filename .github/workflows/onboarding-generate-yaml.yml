@@ -105,12 +105,36 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const data = JSON.parse(`${{ steps.extract.outputs.json }}`);
+
+            const summary = `
+            ### 📄 Onboarding Request Summary
+        
+            | Field | Value |
+            |------|--------|
+            | **Hospital Name** | ${data.hospital_name} |
+            | **Sales Order** | ${data.sales_order} |
+            | **Namespace** | ${data.namespace} |
+            | **CPU Cores** | ${data.cpu} |
+            | **Memory** | ${data.memory} |
+            | **Storage** | ${data.storage} |
+            | **Environment** | ${data.environment} |
+            | **Ports** | ${data.ports || "N/A"} |
+            | **Notes** | ${data.notes || "N/A"} |
+
+---
+✅ **Onboarding YAML successfully generated and stored in** \`/onboarding/\`.
+
+You may now proceed with the **approval workflow** using **/approve**.
+`;
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: "✅ Onboarding YAML successfully generated and stored in `/onboarding/`.\n\nYou may now proceed with the approval workflow."
+              body: summary
             });
+
 
       # ----------------------------------------------------
       # 5. Mark YAML generation complete (IMPORTANT)
