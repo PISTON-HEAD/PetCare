@@ -1,4 +1,3 @@
-
 name: Generate Onboarding YAML
 
 on:
@@ -55,6 +54,7 @@ jobs:
               timestamp: new Date().toISOString()
             };
 
+            // set output for use in later steps
             core.setOutput("json", JSON.stringify(data));
 
       # ----------------------------------------------------
@@ -62,6 +62,8 @@ jobs:
       # ----------------------------------------------------
       - name: Create YAML file
         run: |
+          set -euo pipefail
+
           mkdir -p onboarding
           echo '${{ steps.extract.outputs.json }}' > onboarding/data.json
 
@@ -77,18 +79,19 @@ jobs:
 
           echo "Generating: $FILE"
 
+          # create the YAML with each value safely extracted via jq
           cat <<EOF > "$FILE"
-          hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
-          sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
-          namespace: "$(jq -r '.namespace' onboarding/data.json)"
-          cpu: "$(jq -r '.cpu' onboarding/data.json)"
-          memory: "$(jq -r '.memory' onboarding/data.json)"
-          storage: "$(jq -r '.storage' onboarding/data.json)"
-          environment: "$(jq -r '.environment' onboarding/data.json)"
-          ports: "$(jq -r '.ports' onboarding/data.json)"
-          notes: "$(jq -r '.notes' onboarding/data.json)"
-          generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
-          EOF
+hospital_name: "$(jq -r '.hospital_name' onboarding/data.json)"
+sales_order: "$(jq -r '.sales_order' onboarding/data.json)"
+namespace: "$(jq -r '.namespace' onboarding/data.json)"
+cpu: "$(jq -r '.cpu' onboarding/data.json)"
+memory: "$(jq -r '.memory' onboarding/data.json)"
+storage: "$(jq -r '.storage' onboarding/data.json)"
+environment: "$(jq -r '.environment' onboarding/data.json)"
+ports: "$(jq -r '.ports' onboarding/data.json)"
+notes: "$(jq -r '.notes' onboarding/data.json)"
+generated_at: "$(jq -r '.timestamp' onboarding/data.json)"
+EOF
 
       # ----------------------------------------------------
       # 3. Commit generated YAML
@@ -100,17 +103,63 @@ jobs:
           file_pattern: onboarding/*.yaml
 
       # ----------------------------------------------------
-      # 4. Comment confirmation
+      # 4. Comment confirmation (shows summary to approver)
       # ----------------------------------------------------
       - name: Post Confirmation Comment
         uses: actions/github-script@v7
+        env:
+          EXTRACTED_JSON: ${{ steps.extract.outputs.json }}
         with:
           script: |
+            const json = process.env.EXTRACTED_JSON || "{}";
+            let data = {};
+            try {
+              data = JSON.parse(json);
+            } catch (e) {
+              data = {};
+            }
+
+            // apply sensible defaults for display
+            const hospitalName = data.hospital_name || "Not provided";
+            const salesOrder = data.sales_order || "Not provided";
+            const cpu = data.cpu || "Not provided";
+            const memory = data.memory || "Not provided";
+            const storage = data.storage || "Not provided";
+            const environment = data.environment || "Not provided";
+            const namespace = data.namespace || "Not provided";
+            const ports = data.ports || "None";
+            const notes = data.notes || "None";
+            const generatedAt = data.timestamp || new Date().toISOString();
+
+            const summary = `
+### 🏥 Onboarding Details Extracted
+
+**Hospital Name:** ${hospitalName}
+**Sales Order:** ${salesOrder}
+
+#### 🔧 Requirements
+- **CPU:** ${cpu}
+- **Memory:** ${memory}
+- **Storage:** ${storage}
+- **Environment:** ${environment}
+- **Namespace:** ${namespace}
+- **Ports:** ${ports}
+- **Notes:** ${notes}
+
+**Generated at:** ${generatedAt}
+
+---
+
+✅ Onboarding YAML has been generated and stored in \`/onboarding/\`.
+
+You may now proceed with the approval workflow.
+`;
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: "✅ Onboarding YAML successfully generated and stored in `/onboarding/`.\n\nYou may now proceed with the approval workflow."
+              body: summary
             });
 
       # ----------------------------------------------------
