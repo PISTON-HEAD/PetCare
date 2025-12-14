@@ -29,11 +29,16 @@ jobs:
         id: load_approvers
         run: |
           echo "Reading approvers..."
-          LIST=$(grep '-' approvers/approvers.yaml | sed 's/- //g' | tr '\n' ',' | sed 's/,$//')
-          JSON=$(printf '[%s]' "$(echo $LIST | sed 's/,/","/g' | sed 's/^/"/; s/$/"/')")
-          
+          JSON=$(node -e "console.log(JSON.stringify(require('./approvers/approvers.json').approvers))")
+
           echo "APPROVERS_JSON=$JSON" >> $GITHUB_ENV
           echo "Loaded approvers: $JSON"
+
+        #LIST=$(grep '-' approvers/approvers.yaml | sed 's/- //g' | tr '\n' ',' | sed 's/,$//')
+        #JSON=$(printf '[%s]' "$(echo $LIST | sed 's/,/","/g' | sed 's/^/"/; s/$/"/')")
+          
+        #echo "APPROVERS_JSON=$JSON" >> $GITHUB_ENV
+        #echo "Loaded approvers: $JSON"
 
       # ----------------------------------------
       # 2. Validate if commenter is an approver
