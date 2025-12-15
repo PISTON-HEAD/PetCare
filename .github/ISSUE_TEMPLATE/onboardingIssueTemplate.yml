@@ -84,7 +84,7 @@ body:
       options:
         - "ISCV"
         - "Reporting"
-        - "DECG"
+        - "ICR"
     validations:
       required: true
 
