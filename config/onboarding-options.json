@@ -25,6 +25,6 @@
 
   "business_unit": {
     "label": "Business Unit",
-    "options": ["ISCV", "Reporting", "DECG"]
+    "options": ["ISCV", "Reporting", "ICR"]
   }
 }
