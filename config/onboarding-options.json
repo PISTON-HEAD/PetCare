@@ -1,0 +1,30 @@
+{
+  "cpu": {
+    "label": "CPU Cores",
+    "options": ["0.25", "0.5", "1", "2", "4", "8", "16"]
+  },
+
+  "memory": {
+    "label": "Memory (Gi)",
+    "options": ["2Gi", "4Gi", "8Gi", "16Gi", "32Gi", "64Gi"]
+  },
+
+  "storage": {
+    "label": "Storage (Gi)",
+    "options": [
+      "10Gi", "20Gi", "30Gi", "40Gi", "50Gi",
+      "60Gi", "70Gi", "80Gi", "90Gi", "100Gi",
+      "150", "200", "250"
+    ]
+  },
+
+  "environment": {
+    "label": "Environment",
+    "options": ["dev", "prod"]
+  },
+
+  "business_unit": {
+    "label": "Business Unit",
+    "options": ["ISCV", "Reporting", "DECG"]
+  }
+}
