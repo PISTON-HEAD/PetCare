@@ -1,0 +1,31 @@
+name: Update Issue Template from JSON
+
+on:
+  push:
+    paths:
+      - "config/onboarding-options.json"   # Only run when JSON changes
+
+jobs:
+  update-template:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Generate updated Issue Template YAML
+        run: |
+          node scripts/generate-template.js
+
+      - name: Commit updated Issue Template
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/ISSUE_TEMPLATE/onboardingIssueTemplate.yml
+          git commit -m "Auto-update Issue Template from JSON" || echo "No changes to commit"
+          git push
