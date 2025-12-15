@@ -49,7 +49,7 @@ jobs:
               storage: getField("Storage (Gi)"),
               namespace: getField("Kubernetes Namespace"),
               environment: getField("Environment"),
-              ports: getField("Inbound Ports (Optional)"),
+              ports: getField("Inbound Ports (Optional), Multiple ports can be confiured by comma seperation"),
               notes: getField("Additional Notes"),
               timestamp: new Date().toISOString()
             };
