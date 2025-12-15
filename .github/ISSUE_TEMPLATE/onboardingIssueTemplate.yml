@@ -29,10 +29,13 @@ body:
       description: Select number of CPU cores required
       multiple: false
       options:
+        - "0.25"
+        - "0.5"
         - "1"
         - "2"
-        - "3"
         - "4"
+        - "8"
+        - "16"
     validations:
       required: true
 
@@ -47,6 +50,7 @@ body:
         - "8Gi"
         - "16Gi"
         - "32Gi"
+        - "64Gi"
     validations:
       required: true
 
@@ -66,19 +70,21 @@ body:
         - "80Gi"
         - "90Gi"
         - "100Gi"
+        - "150"
+        - "200"
+        - "250"
     validations:
       required: true
 
-  # ✅ New Business Unit dropdown (added here)
   - type: dropdown
     id: business_unit
     attributes:
       label: Business Unit
       description: Select the Business Unit
       options:
-        - ISCV
-        - Reporting
-        - DECG
+        - "ISCV"
+        - "Reporting"
+        - "DECG"
     validations:
       required: true
 
@@ -95,18 +101,16 @@ body:
     attributes:
       label: Environment
       options:
-        - dev
-        - qa
-        - stage
-        - prod
+        - "dev"
+        - "prod"
     validations:
       required: true
 
   - type: input
     id: ports
     attributes:
-      label: Inbound Ports (Optional)
-      placeholder: "8080"
+      label: Inbound Ports (Optional), Multiple ports can be confiured by comma seperation
+      placeholder: "8080,9099"
     validations:
       required: false
 
