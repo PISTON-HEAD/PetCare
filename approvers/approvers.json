@@ -1,9 +1,18 @@
 {
-  "approvers": [
-    "GokulKrishna-philips",
-    "PISTON-HEAD",
-    "another-approver-name",
-    "Ravi Athmanathan",
-    "Jayanth-Philips"
-  ]
+  "approvers": {
+    "default": [
+      "GokulKrishna-philips",
+      "PISTON-HEAD",
+      "another-approver-name",
+      "Ravi Athmanathan",
+      "Jayanth-Philips"
+    ],
+    "business_unit": {
+      "ISCV": {
+        "mandatory": [
+          "Jayanth-Philips"
+        ]
+      }
+    }
+  }
 }
