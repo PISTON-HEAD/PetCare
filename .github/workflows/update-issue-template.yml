@@ -5,6 +5,10 @@ on:
     paths:
       - "config/onboarding-options.json"   # Only run when JSON changes
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   update-template:
     runs-on: ubuntu-latest
