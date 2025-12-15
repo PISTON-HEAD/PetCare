@@ -88,8 +88,8 @@ ${config.environment.options.map(o => `        - "${o}"`).join("\n")}
   - type: input
     id: ports
     attributes:
-      label: Inbound Ports (Optional)
-      placeholder: "8080"
+      label: Inbound Ports (Optional), Multiple ports can be confiured by comma seperation
+      placeholder: "8080,9099"
     validations:
       required: false
 
