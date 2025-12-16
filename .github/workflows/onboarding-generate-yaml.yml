@@ -48,7 +48,7 @@ jobs:
               memory: getField("Memory (Gi)"),
               storage: getField("Storage (Gi)"),
               namespace: getField("Kubernetes Namespace"),
-              businessUnit: getField("Business Unit"),
+              business_unit: getField("Business Unit"),
               environment: getField("Environment"),
               ports: getField("Inbound Ports (Optional), Multiple ports can be confiured by comma seperation"),
               notes: getField("Additional Notes"),
@@ -88,6 +88,7 @@ jobs:
           cpu: "$(jq -r '.cpu' onboarding/data.json)"
           memory: "$(jq -r '.memory' onboarding/data.json)"
           storage: "$(jq -r '.storage' onboarding/data.json)"
+          business_unit: "$(jq -r '.business_unit' onboarding/data.json)"
           environment: "$(jq -r '.environment' onboarding/data.json)"
           ports: "$(jq -r '.ports' onboarding/data.json)"
           notes: "$(jq -r '.notes' onboarding/data.json)"
