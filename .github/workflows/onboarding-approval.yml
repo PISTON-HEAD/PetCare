@@ -54,7 +54,25 @@ jobs:
             console.log("Approvers:", approvers);
             console.log("Commenter:", commenter);
 
-            const authorized = approvers.includes(commenter);
+            const defaultApprovers = approvers.default || [];
+            let authorized = defaultApprovers.includes(commenter);
+
+            const issueBody = context.payload.issue.body || "";
+            const buMatch = issueBody.match(/Business Unit\s*\n\s*([A-Za-z0-9_-]+)/);
+            const businessUnit = buMatch ? buMatch[1] : null;
+
+            console.log("Business Unit:", businessUnit);
+
+            if (
+              businessUnit &&
+              approvers.business_unit?.[businessUnit]?.mandatory
+            ) {
+              const mandatoryApprovers =
+                approvers.business_unit[businessUnit].mandatory;
+
+              authorized =
+                mandatoryApprovers.includes(commenter);
+            }
             core.setOutput("authorized", authorized);
 
       # ----------------------------------------
