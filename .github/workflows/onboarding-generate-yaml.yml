@@ -48,6 +48,7 @@ jobs:
               memory: getField("Memory (Gi)"),
               storage: getField("Storage (Gi)"),
               namespace: getField("Kubernetes Namespace"),
+              businessUnit: getField("Business Unit"),
               environment: getField("Environment"),
               ports: getField("Inbound Ports (Optional), Multiple ports can be confiured by comma seperation"),
               notes: getField("Additional Notes"),
